@@ -1,0 +1,156 @@
+POLICY FOR SECURITY
+
+-- Re-Enable RLS for security
+ALTER TABLE student_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE faculty_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE directory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE complaint_box ENABLE ROW LEVEL SECURITY;
+ALTER TABLE complaint_upvotes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE marketplace ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lost_found ENABLE ROW LEVEL SECURITY;
+
+-- Allow everyone to read student statuses (Required for checks to work)
+CREATE POLICY "System Read Student Profiles"
+ON student_users FOR SELECT
+TO authenticated
+USING (true);
+
+-- Allow students to update their own session_code
+CREATE POLICY "Students Update Own Profile"
+ON student_users FOR UPDATE
+TO authenticated
+USING (id = auth.uid())
+WITH CHECK (id = auth.uid());
+
+-- Allow everyone to read faculty statuses (Required for checks to work)
+CREATE POLICY "System Read Faculty Profiles"
+ON faculty_users FOR SELECT
+TO authenticated
+USING (true);
+
+-- Allow everyone to read the directory (Contact info, etc.)
+CREATE POLICY "Public Read Directory"
+ON directory FOR SELECT
+TO authenticated
+USING (true);
+
+-- ------------------------------------------------------------------------------
+-- 2. ANNOUNCEMENTS
+-- Rule: Students (View), Faculty (Create + View)
+-- ------------------------------------------------------------------------------
+
+-- VIEW: Everyone
+CREATE POLICY "Public View Announcements"
+ON announcements FOR SELECT
+TO authenticated
+USING (true);
+
+-- CREATE: Only Faculty
+CREATE POLICY "Faculty Post Announcements"
+ON announcements FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (SELECT 1 FROM faculty_users WHERE user_id = auth.uid())
+);
+
+
+-- ------------------------------------------------------------------------------
+-- 3. COMPLAINTS
+-- Rule: Students (Create + View), Faculty (Monitor/View Only)
+-- ------------------------------------------------------------------------------
+
+-- VIEW: Everyone (Transparency)
+CREATE POLICY "Public View Complaints"
+ON complaint_box FOR SELECT
+TO authenticated
+USING (true);
+
+-- CREATE: Only Students
+CREATE POLICY "Students Submit Complaints"
+ON complaint_box FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (SELECT 1 FROM student_users WHERE id = auth.uid())
+);
+
+-- ------------------------------------------------------------------------------
+-- 4. COMPLAINT UPVOTES
+-- Rule: Students (Upvote), Faculty (View Count)
+-- ------------------------------------------------------------------------------
+
+-- VIEW: Everyone
+CREATE POLICY "Public View Upvotes"
+ON complaint_upvotes FOR SELECT
+TO authenticated
+USING (true);
+
+-- CREATE: Only Students
+CREATE POLICY "Students Upvote"
+ON complaint_upvotes FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (SELECT 1 FROM student_users WHERE id = auth.uid())
+);
+
+
+-- ------------------------------------------------------------------------------
+-- 5. MARKETPLACE
+-- Rule: Students (Buy/Sell/View), Faculty (NO ACCESS)
+-- ------------------------------------------------------------------------------
+
+-- VIEW: Only Students
+CREATE POLICY "Students View Market"
+ON marketplace FOR SELECT
+TO authenticated
+USING (
+  EXISTS (SELECT 1 FROM student_users WHERE id = auth.uid())
+);
+
+-- CREATE: Only Students
+CREATE POLICY "Students Sell Market"
+ON marketplace FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (SELECT 1 FROM student_users WHERE id = auth.uid())
+);
+
+-- UPDATE: Only the Owner (to mark as sold)
+CREATE POLICY "Owner Manage Market"
+ON marketplace FOR UPDATE
+TO authenticated
+USING ( owner_id = auth.uid() );
+
+
+-- ------------------------------------------------------------------------------
+-- 6. LOST & FOUND
+-- Rule: Students (Post + View), Faculty (Post + View)
+-- ------------------------------------------------------------------------------
+
+-- VIEW: Everyone
+CREATE POLICY "Public View LostFound"
+ON lost_found FOR SELECT
+TO authenticated
+USING (true);
+
+-- CREATE: Students OR Faculty
+CREATE POLICY "Authorized Post LostFound"
+ON lost_found FOR INSERT
+TO authenticated
+WITH CHECK (
+  -- Check if user is in student_users table
+  (EXISTS (SELECT 1 FROM student_users WHERE id = auth.uid())) 
+  OR 
+  -- OR check if user is in faculty_users table
+  (EXISTS (SELECT 1 FROM faculty_users WHERE user_id = auth.uid()))
+);
+
+-- Allow Users (Student/Faculty) to DELETE their own posts
+CREATE POLICY "Owner Delete LostFound"
+ON lost_found FOR DELETE
+TO authenticated
+USING (user_id = auth.uid());
+
+
+ALTER TABLE announcements 
+ADD COLUMN link TEXT;

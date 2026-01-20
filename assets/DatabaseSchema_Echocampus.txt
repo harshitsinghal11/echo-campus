@@ -1,0 +1,107 @@
+Database Schema
+----------------------------------------------------------------------------------------
+
+// STUDENT_USERS
+create table public.student_users (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  session_code text unique,
+  created_at timestamp with time zone default now()
+);
+
+----------------------------------------------------------------------------------------
+
+// FACULTY_USERS
+CREATE TABLE faculty_users (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  faculty_id UUID REFERENCES directory(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id),
+  UNIQUE(faculty_id)
+);	
+
+----------------------------------------------------------------------------------------
+
+// ANNOUNCEMENTS
+create table announcements (
+  id uuid primary key default gen_random_uuid(),
+  author_id uuid references directory(id) not null,
+  title text not null,
+  link text,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+----------------------------------------------------------------------------------------
+
+// FACULTY_DIRECTORY
+CREATE TABLE directory (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  experience INTEGER CHECK (experience >= 0),
+  department VARCHAR(100) NOT NULL,
+  phone_no VARCHAR(20),
+  date_of_birth DATE,
+  cabin_no VARCHAR(50),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+----------------------------------------------------------------------------------------
+
+// CHATS
+inside FIREBASE 
+Don't NEED TO CREATE POLICY
+
+----------------------------------------------------------------------------------------
+
+// COMPLAINTS_BOX
+create table complaint_box (
+  id uuid primary key default gen_random_uuid(),
+  session_code text references public.users(session_code),
+  complaint text,
+  email text,
+  created_at timestamptz default now()
+);
+
+// COMPLAINTS_UPVOTES
+create table if not exists complaint_upvotes (
+  id uuid primary key default gen_random_uuid(),
+  complaint_id uuid references complaint_box(id) on delete cascade,
+  email text,
+  created_at timestamp with time zone default now()
+);
+----------------------------------------------------------------------------------------
+
+// MARKETPLACE_TABLE
+create table public.marketplace (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.users(id) on delete cascade,
+  owner_name text not null,
+  owner_email text not null,
+  product_title text not null,
+  description text not null,
+  price numeric not null
+    check (price > 0 and price <= 99999),
+  contact_info text not null,
+  is_sold boolean default false,
+  created_at timestamp with time zone default now()
+);
+
+----------------------------------------------------------------------------------------
+
+// LOST_FOUND
+create table lost_found (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) not null, -- Links to whoever posted it
+  title text not null,
+  description text,
+  location_found text not null,
+  contact_info text not null,
+  image_url text, -- Optional: For the photo
+  is_resolved boolean default false,
+  created_at timestamptz default now()
+);
+
+----------------------------------------------------------------------------------------

@@ -1,0 +1,108 @@
+EchoCampus
+**Meet. Learn. Build.**
+
+## Project Objective / Problem Statement
+New students often struggle to connect with peers, access essential information, and stay informed about campus activities. EchoCampus addresses these challenges by creating a unified digital platform where students, faculty, and administrators can seamlessly connect and collaborate.
+
+## Project Overview
+EchoCampus is a student-centered platform designed to simplify campus life and foster meaningful connections among students and faculty. Through an integrated digital ecosystem, the platform helps students connect, collaborate, and stay informed about everything happening on campus.
+
+The platform features multiple modules that enhance communication, convenience, and community engagement across the campus.
+
+## Features
+
+### 1. Announcements
+Keep the campus community engaged and informed with curated lists of upcoming events, hackathons, and campus festivals.
+
+### 2. Anonymous Chat
+Enable open, judgment-free communication among students. This feature encourages honest discussions and peer support while maintaining user privacy.
+
+### 3. Complaint System
+- Students can anonymously report campus-related issues
+- Peer-driven visibility through upvoting mechanism
+- Student-only posting ensures authentic, peer-generated feedback
+- Addresses concerns with community-backed prioritization
+
+### 4. Faculty Directory
+Quick access to comprehensive faculty information including names, experience, office locations, and contact details—making it easy for students to reach out when needed.
+
+### 5. Lost & Found
+A dedicated section for reporting and recovering lost items such as earphones, ID cards, wallets, and other personal belongings.
+
+### 6. Marketplace
+A secure platform for students to buy, sell, or exchange items within the campus community, fostering a sustainable sharing economy.
+
+
+**Mission:** EchoCampus aims to build a connected, collaborative, and resourceful student community—helping every learner meet, learn, and build together.
+
+## Technology Stack
+
+| Component | Technology |
+|-----------|-----------|
+| **Frontend** | Mochaa AI + Google Gemini |
+| **Backend** | Next.js (built-in) |
+| **Database** | Supabase |
+| **Real-time Chat** | Firebase |
+| **Authentication** | SupaAuth |
+
+**Core Infrastructure**
+- ✅ Reusable NavBar and Footer components
+- ✅ Three-tier layout structure: `(app)/layout.tsx`, `(auth)/layout.tsx`, and `(main)/layout.tsx`
+
+**Authentication & Security**
+- ✅ Credential-based login system
+- ✅ Route protection via ProtectedRoute wrapper
+- ✅ Role-based access control (students cannot access faculty routes and vice versa)
+- ✅ Comprehensive security policies
+
+**User Identity & Profile**
+- ✅ Profile page with permanent "Random Name" assigned at first login
+- ✅ Unique identity generation using `//utils/generateUniqueCode.ts`
+- ✅ Persistent sessionCode across login sessions
+
+**Faculty Directory**
+- ✅ Card-based faculty information display
+- ✅ Advanced filtering and search functionality
+- ✅ Shared component architecture
+
+**Communication Features**
+- ✅ Text-based student chat with sessionCode identification for privacy
+- ✅ Anonymous complaint system with upvoting mechanism
+- ✅ Database tables: `complaint_box` and `complaint_upvote`
+
+**Marketplace**
+- ✅ Item listing with seller details (Name, Email, Price, Contact, Description)
+- ✅ 20-word description limit per listing
+- ✅ Direct buyer-seller communication
+- ✅ "Mark as Sold" functionality
+- ✅ Supabase integration for data storage
+
+**Lost & Found**
+- ✅ Image upload support
+- ✅ Location and contact information fields
+- ✅ Detailed product descriptions
+- ✅ Daily posting limits
+
+**Announcements**
+- ✅ Faculty-only publishing rights
+- ✅ Read-only access for students
+
+**Dashboards**
+- ✅ Customized student dashboard
+- ✅ Customized faculty dashboard
+
+**Rate Limiting**
+- ✅ Database triggers and functions for posting limits
+- ✅ Automated enforcement of usage restrictions
+
+## Usage Limits
+
+To ensure fair platform usage and prevent spam, the following restrictions apply:
+
+| Feature | Limit |
+|---------|-------|
+| **Complaints** | 1 per week |
+| **Marketplace** | 1 listing every 3 days |
+| **Lost & Found** | 2 posts per day |
+
+**EchoCampus** — Building a more connected campus, one interaction at a time.

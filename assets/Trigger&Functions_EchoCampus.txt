@@ -1,0 +1,95 @@
+TRIGGERS AND FUNCTIONS TO PREVENT SPAMMING
+-- 1. Create the Function
+CREATE OR REPLACE FUNCTION check_lost_found_limit()
+RETURNS TRIGGER AS $$
+DECLARE
+  post_count INTEGER;
+BEGIN
+  -- Count posts by this specific user in the last 24 hours
+  SELECT COUNT(*) INTO post_count
+  FROM lost_found
+  WHERE user_id = auth.uid()
+  AND created_at > (now() - interval '24 hours');
+
+  -- If they have 3 or more, BLOCK the insert
+  IF post_count >= 3 THEN
+    RAISE EXCEPTION 'Daily limit reached! You can only post 3 items every 24 hours.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Create the Trigger
+DROP TRIGGER IF EXISTS enforce_lost_found_limit ON lost_found;
+
+CREATE TRIGGER enforce_lost_found_limit
+BEFORE INSERT ON lost_found
+FOR EACH ROW
+EXECUTE FUNCTION check_lost_found_limit();
+
+
+
+
+
+-- 1. Create the Function
+CREATE OR REPLACE FUNCTION check_complaint_limit()
+RETURNS TRIGGER AS $$
+DECLARE
+  complaint_count INTEGER;
+BEGIN
+  -- Count complaints by this specific email in the last 1 week
+  -- We use NEW.email to access the email being inserted
+  SELECT COUNT(*) INTO complaint_count
+  FROM complaint_box
+  WHERE email = NEW.email
+  AND created_at > (now() - interval '1 week');
+
+  -- If they have 1 or more, BLOCK the insert
+  IF complaint_count >= 1 THEN
+    RAISE EXCEPTION 'Weekly limit reached! You can only submit 1 complaint per week.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Create the Trigger
+DROP TRIGGER IF EXISTS enforce_complaint_limit ON complaint_box;
+
+CREATE TRIGGER enforce_complaint_limit
+BEFORE INSERT ON complaint_box
+FOR EACH ROW
+EXECUTE FUNCTION check_complaint_limit();
+
+
+
+-- 1. Create the Function
+CREATE OR REPLACE FUNCTION check_marketplace_limit()
+RETURNS TRIGGER AS $$
+DECLARE
+  listing_count INTEGER;
+BEGIN
+  -- Count active listings by this user in the last 3 days
+  -- We use NEW.owner_id because your API inserts user.id into that column
+  SELECT COUNT(*) INTO listing_count
+  FROM marketplace
+  WHERE owner_id = NEW.owner_id
+  AND created_at > (now() - interval '3 days');
+
+  -- If they have 1 or more, BLOCK the insert
+  IF listing_count >= 1 THEN
+    RAISE EXCEPTION 'Limit reached! You can only list 1 item every 3 days.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Create the Trigger
+DROP TRIGGER IF EXISTS enforce_marketplace_limit ON marketplace;
+
+CREATE TRIGGER enforce_marketplace_limit
+BEFORE INSERT ON marketplace
+FOR EACH ROW
+EXECUTE FUNCTION check_marketplace_limit();
