@@ -1,0 +1,78 @@
+EchoCampus
+Meet. Learn. Build.
+
+1. Project Objective & Problem Statement
+New students often struggle to connect with peers, access essential information, and stay
+informed about campus activities. EchoCampus addresses these challenges by creating a
+unified digital platform where students, faculty, and administrators can seamlessly connect
+and collaborate.
+
+2. Project Overview
+EchoCampus is a student-centered platform designed to simplify campus life and foster
+meaningful connections. Through an integrated digital ecosystem, the platform helps
+students connect, collaborate, and stay informed about everything happening on campus.
+
+3. Key Features
+● 📢 Announcements
+Keep the campus community engaged and informed with curated lists of upcoming
+events, hackathons, and campus festivals.
+● 💬 Anonymous Chat
+Enable open, judgment-free communication among students. This feature
+encourages honest discussions and peer support while maintaining user privacy.
+● ⚖️ Complaint System
+○ Students can anonymously report campus-related issues.
+○ Peer-driven visibility through an upvoting mechanism.
+○ Student-only posting ensures authentic, peer-generated feedback.
+● 👥 Faculty Directory
+Quick access to comprehensive faculty information including names, experience,
+office locations, and contact details.
+● 🔍 Lost & Found
+A dedicated section for reporting and recovering lost items such as earphones, ID
+cards, wallets, and other personal belongings.
+● 🛒 Marketplace
+A secure platform for students to buy, sell, or exchange items within the campus
+community, fostering a sustainable sharing economy.
+
+4. Technology Stack
+Component Technology
+Frontend Mochaa AI + Google Gemini
+Backend Next.js (built-in)
+Database Supabase
+Real-time Chat Firebase
+Authentication SupaAuth
+
+5. Core Infrastructure & Implementation
+Architecture & Security
+● ✅ Layout Structure: Organized three-tier layout (app, auth, main).
+● ✅ Authentication: Credential-based login with role-based access control (students
+vs. faculty).
+● ✅ Security: Route protection via ProtectedRoute wrapper and comprehensive
+security policies.
+User Identity
+● ✅ Profile System: Permanent "Random Name" assigned at first login.
+● ✅ Privacy: Unique identity generation and persistent session codes.
+Module Specifics
+● Faculty Directory: Card-based display with advanced filtering and search.
+● Communication: Text-based chat with privacy identifiers; complaint_box and
+complaint_upvote tables for feedback.
+● Marketplace: Item listings with strict 20-word description limits and "Mark as Sold"
+functionality.
+● Lost & Found: Supports image uploads, location tags, and contact fields.
+● Announcements: Faculty-exclusive publishing rights with read-only access for
+students.
+Rate Limiting
+● ✅ Automated Enforcement: Database triggers and functions prevent spam and
+ensure fair usage.
+
+6. Usage Limits
+To ensure fair platform usage and prevent spam, the following restrictions apply:
+Feature Limit
+Complaints 1 per week
+Marketplace 1 listing every 3 days
+Lost & Found 2 posts per day
+
+
+Mission Statement
+EchoCampus aims to build a connected, collaborative, and resourceful student
+community—helping every learner meet, learn, and build together.
+EchoCampus — Building a more connected campus, one interaction at a time.
