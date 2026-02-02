@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { 
-  User, 
   Mail, 
   Phone, 
   Briefcase, 
@@ -34,26 +33,25 @@ export default function ProfilePage() {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
-          router.push('/auth/login');
+          router.push('/login'); // Fixed path to standard login
           return;
         }
 
-        // 2. Fetch Faculty Details via Join
-        // We join 'faculty_users' with 'directory' to get the real info
-        const { data: facultyData, error: dbError } = await supabase
-          .from('faculty_users')
+        // 2. Fetch User & Faculty Details (Joined Query)
+        // We query the main 'users' table and join 'faculty_profiles'
+        const { data: userData, error: dbError } = await supabase
+          .from('users')
           .select(`
-            faculty_id,
-            directory (
-              name,
-              email,
+            full_name,
+            email,
+            faculty_profiles (
               department,
               phone_no,
               cabin_no,
-              experience
+              experience_years
             )
           `)
-          .eq('user_id', user.id)
+          .eq('id', user.id)
           .single();
 
         if (dbError) {
@@ -61,22 +59,19 @@ export default function ProfilePage() {
         }
 
         // 3. Map Data to State
-        // The 'directory' comes back as an array or object depending on relation type, usually object if 1:1
-        const dir = facultyData?.directory as any; 
+        // Supabase returns the joined table as an object (single relationship)
+        const facultyDetails = Array.isArray(userData?.faculty_profiles) 
+            ? userData?.faculty_profiles[0] 
+            : userData?.faculty_profiles;
         
-        if (dir) {
-          setProfile({
-            name: dir.name || 'Faculty Member',
-            email: dir.email || user.email || '',
-            department: dir.department || 'General',
-            phone_no: dir.phone_no || 'Not Listed',
-            cabin_no: dir.cabin_no || 'Not Assigned',
-            experience: dir.experience || 0
-          });
-        } else {
-            // Fallback if no directory entry found
-           setProfile(prev => ({ ...prev, email: user.email || '' }));
-        }
+        setProfile({
+          name: userData?.full_name || 'Faculty Member',
+          email: userData?.email || user.email || '',
+          department: facultyDetails?.department || 'Not Assigned',
+          phone_no: facultyDetails?.phone_no || 'Not Listed',
+          cabin_no: facultyDetails?.cabin_no || 'Not Assigned',
+          experience: facultyDetails?.experience_years || 0
+        });
 
       } catch (err) {
         console.error('Error fetching user data:', err);
@@ -105,7 +100,7 @@ export default function ProfilePage() {
         <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
           
           {/* Header Section */}
-          <div className="bg-linear-to-r from-blue-600 to-indigo-700 px-8 py-10 relative overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-8 py-10 relative overflow-hidden">
             {/* Background Decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -mr-20 -mt-20"></div>
             
@@ -165,7 +160,7 @@ export default function ProfilePage() {
             {/* Back Button */}
             <div className="mt-10 pt-6 border-t border-gray-100 flex justify-end">
               <button
-                onClick={() => router.push('/main/admin/dashboard')}
+                onClick={() => router.push('/main/faculty/dashboard')}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
               >
                 <ArrowLeft className="w-4 h-4" />

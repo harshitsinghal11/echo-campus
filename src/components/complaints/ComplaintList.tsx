@@ -10,24 +10,21 @@ type Complaint = {
 };
 
 interface ComplaintListProps {
-  userEmail?: string; // Optional because dashboard might not pass it immediately
-  isWidget?: boolean; // NEW PROP
+  isWidget?: boolean;
 }
 
-export default function ComplaintList({ userEmail, isWidget = false }: ComplaintListProps) {
+export default function ComplaintList({ isWidget = false }: ComplaintListProps) {
   const [list, setList] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [upvoting, setUpvoting] = useState<string | null>(null);
 
+  // 1. LOAD COMPLAINTS
   async function load() {
     try {
-      // Note: If you want server-side limiting, you'd update the API. 
-      // For now, we fetch all and slice client-side for the widget.
-      const res = await fetch("/api/complaints");
+      const res = await fetch("/api/complaints"); // Make sure this matches your file name
       const json = await res.json();
       let data = (json.complaints as Complaint[]) || [];
       
-      // If Widget, only show Top 3
       if (isWidget) {
         data = data.slice(0, 3);
       }
@@ -40,24 +37,39 @@ export default function ComplaintList({ userEmail, isWidget = false }: Complaint
     }
   }
 
+  // 2. NEW UPVOTE FUNCTION (Toggle Logic)
   async function upvote(id: string) {
-    if (!userEmail) return alert("Please login to upvote.");
     setUpvoting(id);
 
     try {
-      const res = await fetch("/api/complaints/upvote", {
+      const res = await fetch("/api/complaints/upvote", { // Ensure path matches your API folder structure
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ complaintId: id, email: userEmail })
+        body: JSON.stringify({ complaintId: id }) // No email needed anymore!
       });
 
-      const data = await res.json();
-      if (data.message === "Already upvoted") {
-        alert("You already upvoted this complaint.");
-      } else if (data.message === "Upvote added") {
-        // alert("Upvote successful!"); // Optional: quieter UX
+      if (!res.ok) {
+        if (res.status === 401) alert("Please login to vote.");
+        if (res.status === 403) alert("Only students can upvote.");
+        return;
       }
-      await load();
+
+      const data = await res.json();
+
+      // 3. UPDATE UI IMMEDIATELY (Toggle Count)
+      setList(currentList => 
+        currentList.map(item => {
+          if (item.id === id) {
+            return {
+              ...item,
+              // If added=true, +1. If added=false (removed), -1
+              upvotes: data.added ? item.upvotes + 1 : item.upvotes - 1
+            };
+          }
+          return item;
+        })
+      );
+
     } catch (error) {
       console.error("Failed to upvote:", error);
     } finally {
@@ -90,7 +102,6 @@ export default function ComplaintList({ userEmail, isWidget = false }: Complaint
   return (
     <div className={`flex-1 flex flex-col overflow-y-auto ${isWidget ? '' : 'bg-gray-50 rounded-xl p-6'}`}>
       
-      {/* HEADER: Only show if NOT a widget */}
       {!isWidget && (
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-black flex items-center gap-3">

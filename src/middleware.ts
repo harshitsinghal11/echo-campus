@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  // 1. Setup the Response (Standard Next.js + Supabase setup)
+  // 1. Setup the Response
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // 2. Check Auth: Is the user logged in?
+  // 2. Check Auth
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -47,30 +47,30 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // RULE 2: If Logged in, Check ROLE and enforce Folder Access
+  // RULE 2: If Logged in, Check ROLE in the 'users' table
   if (user && path.startsWith("/main")) {
     
-    // Check if this user is a Faculty member
-    // We check the 'faculty_users' table. If they are there, they are Faculty.
-    const { data: facultyProfile } = await supabase
-      .from("faculty_users")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // ✅ FIX: Query the 'users' table for the 'role' column
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
-    const isFaculty = !!facultyProfile; // true if faculty, false if student
+    const userRole = userData?.role; // 'student' | 'faculty' | 'admin'
+    const isFaculty = userRole === 'faculty';
 
     // --- SECURITY LOGIC ---
 
-    // A. STUDENT trying to access ADMIN pages -> Kick to Student Dashboard
-    if (!isFaculty && path.startsWith("/main/admin")) {      
+    // A. STUDENT trying to access FACULTY pages -> Kick to Student Dashboard
+    if (!isFaculty && path.startsWith("/main/faculty")) {      
       url.pathname = "/main/student/dashboard";
       return NextResponse.redirect(url);
     }
 
     // B. FACULTY trying to access STUDENT pages -> Kick to Announcements
     if (isFaculty && path.startsWith("/main/student")) {
-      url.pathname = "/main/admin/announcements";
+      url.pathname = "/main/faculty/dashboard"; // Changed to dashboard for better UX
       return NextResponse.redirect(url);
     }
   }
@@ -80,14 +80,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - api/ (API routes)
-     * - auth/ (Login pages)
-     */
     "/((?!_next/static|_next/image|favicon.ico|api/|auth/).*)",
   ],
 };

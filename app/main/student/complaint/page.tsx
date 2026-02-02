@@ -8,7 +8,6 @@ import { useUserEmail } from "@/hooks/useUserEmail";
 export default function Page() {
   const sessionCode = useSessionCode();
   const userEmail = useUserEmail();
-  console.log(sessionCode)
 
   return (
     <div className="p-4 mx-auto flex flex-col">

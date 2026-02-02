@@ -10,78 +10,87 @@ async function createClient() {
     {
       cookies: {
         getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch { }
-        },
+        setAll(cookiesToSet) { try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch { } },
       },
     }
   );
 }
 
-// GET: Fetch Complaints (Unchanged)
+// GET: Fetch Complaints
 export async function GET() {
   const supabase = await createClient();
 
+  // We join 'users' -> 'student_profiles' to get the session code safely
   const { data, error } = await supabase
     .from("complaint_box")
     .select(`
       id, 
-      complaint, 
-      created_at, 
-      session_code,
-      complaint_upvotes (count)
+      content, 
+      created_at,
+      is_anonymous,
+      user_id,
+      complaint_upvotes (count),
+      users:user_id (
+        student_profiles ( session_code )
+      )
     `)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const complaints = data.map((c: any) => ({
-    id: c.id,
-    complaint: c.complaint,
-    created_at: c.created_at,
-    session_code: c.session_code,
-    upvotes: c.complaint_upvotes[0]?.count || 0,
-  }));
+  // Transform data
+  const complaints = data.map((c: any) => {
+    // Navigate the nested join: users -> student_profiles -> session_code
+    const profile = Array.isArray(c.users?.student_profiles) 
+      ? c.users?.student_profiles[0] 
+      : c.users?.student_profiles;
+
+    const realSessionCode = profile?.session_code || "Unknown";
+
+    return {
+      id: c.id,
+      complaint: c.content, 
+      created_at: c.created_at,
+      session_code: c.is_anonymous ? "Anonymous" : realSessionCode,
+      upvotes: c.complaint_upvotes[0]?.count || 0,
+      current_user_has_upvoted: false // Frontend can handle this via separate check or improved query if needed
+    };
+  });
 
   return NextResponse.json({ complaints });
 }
 
-// POST: Create Complaint (Logic moved to DB Trigger)
+// POST: Create Complaint
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    const body = await req.json();
-    const { sessionCode, complaint, email } = body;
+    
+    // 1. Authenticate
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!sessionCode || !complaint || !email) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const body = await req.json();
+    const { complaint, isAnonymous } = body; 
+
+    if (!complaint) {
+      return NextResponse.json({ error: "Complaint content missing" }, { status: 400 });
     }
     
-    // 1. Attempt Insert
+    // 2. Insert (RLS Policy will ensure only Students can do this)
     const { error: insertError } = await supabase
       .from("complaint_box")
       .insert({ 
-        session_code: sessionCode, 
-        complaint: complaint, 
-        email: email 
+        user_id: user.id,
+        content: complaint,
+        is_anonymous: isAnonymous || false
       });
 
-    // 2. Handle Errors (Including Trigger Exception)
     if (insertError) {
-        // If the trigger blocks it, the error message will be:
-        // "Weekly limit reached! You can only submit 1 complaint per week."
-        
-        // Check if it's our specific trigger error to return a 400 (Bad Request) instead of 500
-        if (insertError.message.includes("Weekly limit reached")) {
-            return NextResponse.json({ error: insertError.message }, { status: 400 });
+        if (insertError.message.includes("limit")) {
+            return NextResponse.json({ error: "Daily limit reached! 1 Complaint per Week" }, { status: 400 });
         }
-
         return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 

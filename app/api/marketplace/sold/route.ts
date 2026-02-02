@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     {
       cookies: {
         getAll() { return cookieStore.getAll() },
-        setAll() {} // Not needed for simple reads
+        setAll() {} 
       },
     }
   );
@@ -21,13 +21,14 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { id } = body;
+  const { id } = body; // The ID of the marketplace item
 
+  // RLS Policy already handles this, but adding owner_id check here is extra safe
   const { error } = await supabase
     .from("marketplace")
     .update({ is_sold: true })
     .eq("id", id)
-    .eq("owner_id", user.id);
+    .eq("owner_id", user.id); 
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

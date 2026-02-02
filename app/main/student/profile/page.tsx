@@ -9,7 +9,6 @@ import {
   Calendar, 
   ArrowLeft,
   Loader2,
-  GraduationCap
 } from "lucide-react";
 
 export default function StudentProfilePage() {
@@ -31,26 +30,43 @@ export default function StudentProfilePage() {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
-          router.push('/auth/login');
+          router.push('/login'); // Fixed redirect path to match standard Next.js
           return;
         }
 
-        // 2. Fetch Student Specifics (Session Code)
-        const { data: studentData, error: dbError } = await supabase
-          .from('student_users')
-          .select('session_code, created_at')
-          .eq('id', user.id)
+        // 2. Fetch Data (Joined Query)
+        // We select session_code from 'student_profiles' AND join 'users' to get created_at
+        const { data: profileData, error: dbError } = await supabase
+          .from('student_profiles')
+          .select(`
+            session_code,
+            users:user_id ( created_at, email )
+          `)
+          .eq('user_id', user.id)
           .single();
 
         if (dbError) {
           console.error("Database Error:", dbError);
         }
 
-        // 3. Set State
+        // 3. Parse Data
+        // The join returns 'users' as an object or array depending on the relationship
+        // In a 1:1 relationship, Supabase usually returns it as a single object if configured,
+        // otherwise we safe-check it.
+        const userData = Array.isArray(profileData?.users) 
+            ? profileData?.users[0] 
+            : profileData?.users;
+
         setStudent({
           email: user.email || 'No Email',
-          sessionCode: studentData?.session_code || 'Not Generated',
-          joinedAt: studentData?.created_at ? new Date(studentData.created_at).toLocaleDateString() : 'Unknown',
+          sessionCode: profileData?.session_code || 'Not Generated',
+          joinedAt: userData?.created_at 
+            ? new Date(userData.created_at).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              }) 
+            : 'Unknown',
           role: 'Student'
         });
 
@@ -80,21 +96,20 @@ export default function StudentProfilePage() {
         {/* Main Card */}
         <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
           
-          {/* Header Section (Same Style as Faculty) */}
+          {/* Header Section */}
           <div className="bg-linear-to-r from-blue-600 to-cyan-600 px-8 py-10 relative overflow-hidden">
-            {/* Background Decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full -mr-20 -mt-20"></div>
             
             <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-6">
                <div className="text-center md:text-left text-white">
                   <h1 className="text-3xl font-bold tracking-tight">Student Profile</h1>
+                  <p className="text-blue-100 mt-2">Manage your anonymous identity</p>
                </div>
             </div>
           </div>
 
           {/* Profile Details Grid */}
           <div className="px-8 py-10">
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               
               {/* Email */}
@@ -119,7 +134,7 @@ export default function StudentProfilePage() {
                     </span>
                  </div>
                  <p className="text-xs text-blue-400 mt-2">
-                   Annoymous ID Through out the Application
+                   This ID hides your real name in complaints & marketplace.
                  </p>
               </div>
 

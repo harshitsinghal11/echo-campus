@@ -11,11 +11,11 @@ export default function Navbar() {
   const router = useRouter();
 
   const navLinks = [
-    { name: "Dashboard", href: "/main/admin/dashboard", icon: Home },
-    { name: "Annoucements", href: "/main/admin/announcements", icon: BellRing },
-    { name: "Directory", href: "/main/admin/directory", icon: BookUser },
-    { name: "Lost & Found", href: "/main/admin/lost-found", icon: ShieldAlert },
-    { name: "Profile", href: "/main/admin/profile", icon: User },
+    { name: "Dashboard", href: "/main/faculty/dashboard", icon: Home },
+    { name: "Annoucements", href: "/main/faculty/announcements", icon: BellRing },
+    { name: "Directory", href: "/main/faculty/directory", icon: BookUser },
+    { name: "Lost & Found", href: "/main/faculty/lost-found", icon: ShieldAlert },
+    { name: "Profile", href: "/main/faculty/profile", icon: User },
   ];
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);

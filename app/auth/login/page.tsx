@@ -8,106 +8,98 @@ import { generateUniqueCode } from '@/utils/generateUniqueCode';
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // Fixed: was missing set function
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const togglePasswordVisibility = () => {
-    setShowPassword((prev) => !prev);
-  };
 
-  // 1. Basic Login Helper
-  async function performLogin(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error || !data.user) {
-      return { success: false, message: error?.message || "Login failed" };
-    }
-    return { success: true, user: data.user };
-  }
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
-  // 2. Student Session Helper (Only runs for students)
-  async function getOrCreateSessionCode(user: { id: string; email?: string }) {
-    // Check if user exists in 'student_users' table
-    const { data } = await supabase
-      .from("student_users")
+  // --- HELPER: Handle Student Session Code ---
+  async function handleStudentSession(userId: string) {
+    // 1. Check if profile exists
+    const { data: profile, error } = await supabase
+      .from("student_profiles")
       .select("session_code")
-      .eq("id", user.id)
-      .maybeSingle();
+      .eq("user_id", userId)
+      .single();
 
-    // If not found, CREATE them (First time login)
-    if (!data) {
-      const newCode = generateUniqueCode(7);
-      const { error } = await supabase.from("student_users").insert({
-        id: user.id,
-        email: user.email,
-        session_code: newCode,
-      });
-      if (error) throw error;
-      return newCode;
+    if (error && error.code !== 'PGRST116') { // Ignore "not found" error for now
+        console.error("Profile Fetch Error:", error);
+        return null;
     }
 
-    // If found but code is missing
-    if (!data.session_code) {
-      const newCode = generateUniqueCode(7);
-      await supabase.from("student_users").update({ session_code: newCode }).eq("id", user.id);
-      return newCode;
+    // 2. If code exists, return it
+    if (profile?.session_code) {
+      return profile.session_code;
     }
 
-    return data.session_code;
+    // 3. If no code (First time student), generate and save it
+    const newCode = generateUniqueCode(7);
+    
+    // We use upsert to create the profile if it doesn't exist yet
+    const { error: updateError } = await supabase
+      .from("student_profiles")
+      .upsert({ user_id: userId, session_code: newCode });
+
+    if (updateError) throw updateError;
+    
+    return newCode;
   }
 
-  // 3. MAIN SUBMIT HANDLER
+  // --- MAIN LOGIN FUNCTION ---
   const onSubmit = async (e: any) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // A. Perform Auth
-      const res = await performLogin(email, password);
+      // 1. Perform Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (!res.success || !res.user) {
-        alert(res.message);
+      if (authError || !authData.user) {
+        alert(authError?.message || "Login failed");
         setIsLoading(false);
         return;
       }
 
-      console.log("Auth Successful. User ID:", res.user.id);
+      // 2. Fetch User Role from 'users' table
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", authData.user.id)
+        .single();
 
-      // B. CHECK ROLE: Is this user in the Faculty Table?
-      const { data: facultyData } = await supabase
-        .from("faculty_users")
-        .select("id") // We just need to know if a row exists
-        .eq("user_id", res.user.id)
-        .maybeSingle();
+      if (userError || !userData) {
+        alert("User profile not found. Please contact support.");
+        setIsLoading(false);
+        return;
+      }
 
-      if (facultyData) {
-        // --- FACULTY PATH ---
-        console.log("✅ LOGGED IN AS: FACULTY");
-        console.log("Redirecting to Faculty Dashboard...");
+      const role = userData.role; // 'student' | 'faculty' | 'admin'
+      console.log(`✅ Logged in as: ${role.toUpperCase()}`);
 
-        // Save a flag for the session
+      // 3. Routing Logic
+      if (role === 'faculty') {
         sessionStorage.setItem("userRole", "faculty");
-
-        // Redirect (You can change this path later)
-        router.push("/main/admin/dashboard/");
-      } else {
-        // --- STUDENT PATH ---
-        console.log("✅ LOGGED IN AS: STUDENT");
-        console.log("Generating Session Code...");
-
-        // Only run this for students!
-        const sessionCode = await getOrCreateSessionCode(res.user);
-
-        sessionStorage.setItem("userSessionCode", sessionCode);
+        router.push("/main/faculty/dashboard/");
+      } 
+      else if (role === 'student') {
+        // Generate/Get Session Code
+        const sessionCode = await handleStudentSession(authData.user.id);
+        
+        sessionStorage.setItem("userSessionCode", sessionCode || "");
         sessionStorage.setItem("userRole", "student");
         router.push("/main/student/dashboard/");
+      } 
+      else {
+        alert("Unknown role");
       }
 
     } catch (error: any) {
-      console.error("Login Critical Error:", error);
-      alert("Something went wrong during login.");
+      console.error("Critical Login Error:", error);
+      alert("Something went wrong.");
     } finally {
       setIsLoading(false);
     }
@@ -115,8 +107,8 @@ export default function Login() {
 
   return (
     <div className='min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4'>
-      {/* Background decorative elements omitted for brevity - keep your existing ones */}
-      <div className='relative w-full max-w-md'>
+       {/* ... Your existing JSX UI code ... */}
+        <div className='relative w-full max-w-md'>
         <div className='bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 p-8 md:p-10'>
           <div className='text-center mb-8'>
             <h1 className='text-3xl md:text-4xl font-bold text-gray-900 mb-3 tracking-tight'>
