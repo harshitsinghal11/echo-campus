@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 export async function POST(req: Request) {
   try {
     const cookieStore = await cookies();
-    
+
     // 1. Setup Client
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,8 +13,8 @@ export async function POST(req: Request) {
       {
         cookies: {
           getAll() { return cookieStore.getAll() },
-          setAll(cookiesToSet) { 
-            try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch {} 
+          setAll(cookiesToSet) {
+            try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)); } catch { }
           },
         },
       }
@@ -52,9 +52,9 @@ export async function POST(req: Request) {
         .eq("id", existing.id);
 
       if (deleteError) {
-         return NextResponse.json({ error: deleteError.message }, { status: 500 });
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
       }
-      
+
       // Return added: false (Frontend should decrement count)
       return NextResponse.json({ message: "Upvote removed", added: false }, { status: 200 });
 
@@ -62,19 +62,19 @@ export async function POST(req: Request) {
       // --- B. ADD VOTE (Toggle On) ---
       const { error: insertError } = await supabase
         .from("complaint_upvotes")
-        .insert({ 
-          complaint_id: complaintId, 
-          user_id: user.id 
+        .insert({
+          complaint_id: complaintId,
+          user_id: user.id
         });
 
       if (insertError) {
         // Handle Policy Violations (e.g., Faculty trying to vote)
         if (insertError.code === '42501') {
-           return NextResponse.json({ error: "Students only" }, { status: 403 });
+          return NextResponse.json({ error: "Students only" }, { status: 403 });
         }
         // Handle Race Condition (Double click)
-        if (insertError.code === '23505') { 
-           return NextResponse.json({ message: "Already processed" }, { status: 200 });
+        if (insertError.code === '23505') {
+          return NextResponse.json({ message: "Already processed" }, { status: 200 });
         }
         return NextResponse.json({ error: insertError.message }, { status: 500 });
       }
@@ -83,7 +83,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Upvote added", added: true }, { status: 201 });
     }
 
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

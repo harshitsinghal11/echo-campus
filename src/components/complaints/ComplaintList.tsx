@@ -24,11 +24,11 @@ export default function ComplaintList({ isWidget = false }: ComplaintListProps) 
       const res = await fetch("/api/complaints"); // Make sure this matches your file name
       const json = await res.json();
       let data = (json.complaints as Complaint[]) || [];
-      
+
       if (isWidget) {
         data = data.slice(0, 3);
       }
-      
+
       setList(data);
     } catch (error) {
       console.error("Failed to load complaints:", error);
@@ -57,7 +57,7 @@ export default function ComplaintList({ isWidget = false }: ComplaintListProps) 
       const data = await res.json();
 
       // 3. UPDATE UI IMMEDIATELY (Toggle Count)
-      setList(currentList => 
+      setList(currentList =>
         currentList.map(item => {
           if (item.id === id) {
             return {
@@ -101,7 +101,7 @@ export default function ComplaintList({ isWidget = false }: ComplaintListProps) 
 
   return (
     <div className={`flex-1 flex flex-col overflow-y-auto ${isWidget ? '' : 'bg-gray-50 rounded-xl p-6'}`}>
-      
+
       {!isWidget && (
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-black flex items-center gap-3">
@@ -129,7 +129,7 @@ export default function ComplaintList({ isWidget = false }: ComplaintListProps) 
               <div className="flex items-start gap-4">
                 <div className="flex-1">
                   <p className={`text-gray-800 font-medium leading-relaxed ${isWidget ? 'text-sm line-clamp-2' : 'text-lg'}`}>
-                    "{c.complaint}"
+                    &quot;{c.complaint}&quot;
                   </p>
                   <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
                     <Clock className="w-3 h-3" />
@@ -143,7 +143,7 @@ export default function ComplaintList({ isWidget = false }: ComplaintListProps) 
                   disabled={upvoting === c.id}
                   className={`flex items-center gap-1 bg-orange-50 px-2 py-1.5 rounded-md border border-orange-100 hover:bg-orange-100 transition-colors disabled:opacity-50 ${isWidget ? '' : 'flex-col min-w-[60px]'}`}
                 >
-                   <span className={`text-sm font-bold text-orange-600 ${upvoting === c.id ? 'animate-pulse' : ''}`}>
+                  <span className={`text-sm font-bold text-orange-600 ${upvoting === c.id ? 'animate-pulse' : ''}`}>
                     {c.upvotes}
                   </span>
                   <ThumbsUp className={`w-3.5 h-3.5 text-orange-400 ${upvoting === c.id ? 'text-orange-600' : ''}`} />

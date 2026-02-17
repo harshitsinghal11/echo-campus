@@ -42,16 +42,15 @@ export default function AnnouncementForm({ onSuccess }: { onSuccess: () => void 
       setLink("");
       onSuccess();
 
-    } catch (err: any) {
-      alert(err.message || "Failed to post.");
-    } finally {
-      setLoading(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to post.";
+      alert(message);
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      
+
       {/* 1. Title Input */}
       <div>
         <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-1.5">

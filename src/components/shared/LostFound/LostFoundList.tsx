@@ -7,13 +7,22 @@ interface LostFoundListProps {
   refreshTrigger?: number;
   showSearch?: boolean; // If false, renders as a compact "Widget" for dashboards
 }
-
+interface LostFoundItem {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  location_found: string;
+  contact_info: string;
+  image_url: string | null;
+  created_at: string;
+}
 export default function LostFoundList({ 
   refreshTrigger, 
   showSearch = true 
 }: LostFoundListProps) {
   
-  const [items, setItems] = useState<any[]>([]);
+const [items, setItems] = useState<LostFoundItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [internalRefresh, setInternalRefresh] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);

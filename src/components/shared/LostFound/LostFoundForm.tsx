@@ -56,17 +56,14 @@ export default function LostFoundForm({ onSuccess }: { onSuccess: () => void }) 
       setForm({ title: "", description: "", location_found: "", contact_info: "", image_url: "" });
       onSuccess();
 
-    } catch (err: any) {
-      // --- HERE IS THE UPDATE ---
-      // Catch the specific trigger error from Supabase
-      if (err.message && err.message.includes("Daily limit reached")) {
-        alert("Limit Reached: You can only post 2 items every 24 hours. Please try again tomorrow.");
-      } else {
-        alert("Error: " + err.message);
-      }
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: unknown) {
+  const message = err instanceof Error ? err.message : "Unknown error";
+  if (message.includes("Daily limit reached")) {
+    alert("Limit Reached: You can only post 2 items every 24 hours. Please try again tomorrow.");
+  } else {
+    alert("Error: " + message);
+  }
+}
   };
 
   return (

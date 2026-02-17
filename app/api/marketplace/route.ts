@@ -19,7 +19,7 @@ async function createClient() {
 }
 
 // GET: Fetch Listings
-export async function GET(req: Request) {
+export async function GET() {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -32,12 +32,16 @@ export async function GET(req: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const listings = data.map((item: any) => ({
-    ...item,
-    // Flatten the user details
-    owner_email: item.users?.email,
-    owner_name: item.users?.full_name
-  }));
+  type MarketplaceRow = {
+  users?: { email?: string; full_name?: string };
+  [key: string]: unknown;
+};
+
+const listings = (data as MarketplaceRow[]).map((item) => ({
+  ...item,
+  owner_email: item.users?.email,
+  owner_name: item.users?.full_name,
+}));
 
   return NextResponse.json({ listings });
 }
@@ -73,8 +77,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true });
-
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+} catch (err: unknown) {
+  const message = err instanceof Error ? err.message : "Internal server error";
+  return NextResponse.json({ error: message }, { status: 500 });
+}
 }

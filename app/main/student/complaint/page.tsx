@@ -12,7 +12,7 @@ export default function Page() {
   return (
     <div className="p-4 mx-auto flex flex-col">
       <div className="flex flex-col md:flex-row gap-6 overflow-hidden">
-        <ComplaintList userEmail={userEmail} />
+        <ComplaintList />
         <ComplaintForm sessionCode={sessionCode} userEmail={userEmail} />
       </div>
     </div>

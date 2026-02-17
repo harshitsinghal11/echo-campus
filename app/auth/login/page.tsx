@@ -24,8 +24,8 @@ export default function Login() {
       .single();
 
     if (error && error.code !== 'PGRST116') { // Ignore "not found" error for now
-        console.error("Profile Fetch Error:", error);
-        return null;
+      console.error("Profile Fetch Error:", error);
+      return null;
     }
 
     // 2. If code exists, return it
@@ -35,19 +35,19 @@ export default function Login() {
 
     // 3. If no code (First time student), generate and save it
     const newCode = generateUniqueCode(7);
-    
+
     // We use upsert to create the profile if it doesn't exist yet
     const { error: updateError } = await supabase
       .from("student_profiles")
       .upsert({ user_id: userId, session_code: newCode });
 
     if (updateError) throw updateError;
-    
+
     return newCode;
   }
 
   // --- MAIN LOGIN FUNCTION ---
-  const onSubmit = async (e: any) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -84,38 +84,37 @@ export default function Login() {
       if (role === 'faculty') {
         sessionStorage.setItem("userRole", "faculty");
         router.push("/main/faculty/dashboard/");
-      } 
+      }
       else if (role === 'student') {
         // Generate/Get Session Code
         const sessionCode = await handleStudentSession(authData.user.id);
-        
+
         sessionStorage.setItem("userSessionCode", sessionCode || "");
         sessionStorage.setItem("userRole", "student");
         router.push("/main/student/dashboard/");
-      } 
+      }
       else {
         alert("Unknown role");
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Something went wrong.";
       console.error("Critical Login Error:", error);
-      alert("Something went wrong.");
-    } finally {
-      setIsLoading(false);
+      alert(message);
     }
   };
 
   return (
     <div className='min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4'>
-       {/* ... Your existing JSX UI code ... */}
-        <div className='relative w-full max-w-md'>
+      {/* ... Your existing JSX UI code ... */}
+      <div className='relative w-full max-w-md'>
         <div className='bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 p-8 md:p-10'>
           <div className='text-center mb-8'>
             <h1 className='text-3xl md:text-4xl font-bold text-gray-900 mb-3 tracking-tight'>
               Echo<span className='text-blue-600'>Campus</span>
             </h1>
             <p className='text-lg text-gray-600 font-medium tracking-wide'>
-              Meet. Learn. Build.            
+              Meet. Learn. Build.
             </p>
           </div>
 

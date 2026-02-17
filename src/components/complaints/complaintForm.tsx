@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { AlertCircle, CheckCircle2, MessageSquare, Send } from "lucide-react";
 
-export default function ComplaintForm({ sessionCode, userEmail }: any) {
+interface ComplaintFormProps {
+  sessionCode: string | null;
+  userEmail: string;
+}
+export default function ComplaintForm({ sessionCode, userEmail }: ComplaintFormProps) {
   const [complaint, setComplaint] = useState("");
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState("");
