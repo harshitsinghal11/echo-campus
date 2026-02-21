@@ -26,26 +26,24 @@ export async function GET() {
     .from("marketplace")
     .select(`
       *,
-      users:owner_id ( email, full_name )
-    `)
+      users:owner_id ( 
+        email 
+      )
+    `) // Do NOT put owner_name inside the parenthesis; it belongs to marketplace (*)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  type MarketplaceRow = {
-  users?: { email?: string; full_name?: string };
-  [key: string]: unknown;
-};
-
-const listings = (data as MarketplaceRow[]).map((item) => ({
-  ...item,
-  owner_email: item.users?.email,
-  owner_name: item.users?.full_name,
-}));
+  // Map the data so the frontend gets a clean object
+  const listings = (data as any[]).map((item) => ({
+    ...item,
+    owner_email: item.users?.email,
+    owner_name: item.owner_name || "Unknown Seller", 
+    contact_info: item.contact_info
+  }));
 
   return NextResponse.json({ listings });
 }
-
 // POST: Create Listing
 export async function POST(req: Request) {
   try {
@@ -57,18 +55,24 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { product_title, description, price } = body;
+    
+    // 1. ADDED owner_name and contact_info here
+    const { product_title, description, price, owner_name, contact_info, email} = body;
 
-    if (!product_title || !description || !price) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    // 2. Update validation to check for the new fields
+    if (!product_title || !description || !price || !owner_name || !contact_info) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Insert Item (Using owner_id link)
+    // 3. Insert into Supabase (Make sure these column names match your Supabase Table!)
     const { error: insertError } = await supabase.from("marketplace").insert({
       owner_id: user.id,
-      title: product_title,
+      product_title,
       description,
       price: Number(price),
+      owner_name,    // Add this
+      contact_info, 
+      email, // Add this
       is_sold: false
     });
 
@@ -77,8 +81,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true });
-} catch (err: unknown) {
-  const message = err instanceof Error ? err.message : "Internal server error";
-  return NextResponse.json({ error: message }, { status: 500 });
-}
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
