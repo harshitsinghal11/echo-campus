@@ -30,7 +30,7 @@ export default function StudentProfilePage() {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
-          router.push('/login'); // Fixed redirect path to match standard Next.js
+          router.push('/auth/login');
           return;
         }
 

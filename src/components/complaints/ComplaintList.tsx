@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ThumbsUp, MessageSquare, Clock } from "lucide-react";
 
 type Complaint = {
@@ -7,6 +7,13 @@ type Complaint = {
   complaint: string;
   created_at: string;
   upvotes: number;
+  current_user_has_upvoted?: boolean;
+};
+
+type UpvoteApiResponse = {
+  added?: boolean;
+  current_user_has_upvoted?: boolean;
+  upvotes?: number;
 };
 
 interface ComplaintListProps {
@@ -19,7 +26,7 @@ export default function ComplaintList({ isWidget = false }: ComplaintListProps) 
   const [upvoting, setUpvoting] = useState<string | null>(null);
 
   // 1. LOAD COMPLAINTS
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const res = await fetch("/api/complaints"); // Make sure this matches your file name
       const json = await res.json();
@@ -35,7 +42,7 @@ export default function ComplaintList({ isWidget = false }: ComplaintListProps) 
     } finally {
       setLoading(false);
     }
-  }
+  }, [isWidget]);
 
   // 2. NEW UPVOTE FUNCTION (Toggle Logic)
   async function upvote(id: string) {
@@ -54,16 +61,31 @@ export default function ComplaintList({ isWidget = false }: ComplaintListProps) 
         return;
       }
 
-      const data = await res.json();
+      const data = (await res.json()) as UpvoteApiResponse;
 
       // 3. UPDATE UI IMMEDIATELY (Toggle Count)
       setList(currentList =>
         currentList.map(item => {
           if (item.id === id) {
+            const hasUpvoted = Boolean(item.current_user_has_upvoted);
+            const nextHasUpvoted =
+              typeof data.current_user_has_upvoted === "boolean"
+                ? data.current_user_has_upvoted
+                : typeof data.added === "boolean"
+                  ? data.added
+                  : hasUpvoted;
+
+            const nextUpvotes =
+              typeof data.upvotes === "number"
+                ? data.upvotes
+                : nextHasUpvoted === hasUpvoted
+                  ? item.upvotes
+                  : Math.max(0, item.upvotes + (nextHasUpvoted ? 1 : -1));
+
             return {
               ...item,
-              // If added=true, +1. If added=false (removed), -1
-              upvotes: data.added ? item.upvotes + 1 : item.upvotes - 1
+              upvotes: nextUpvotes,
+              current_user_has_upvoted: nextHasUpvoted,
             };
           }
           return item;
@@ -93,7 +115,7 @@ export default function ComplaintList({ isWidget = false }: ComplaintListProps) 
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   if (loading) {
     return <div className="text-center text-gray-400 py-10">Loading complaints...</div>;
@@ -141,12 +163,16 @@ export default function ComplaintList({ isWidget = false }: ComplaintListProps) 
                 <button
                   onClick={() => upvote(c.id)}
                   disabled={upvoting === c.id}
-                  className={`flex items-center gap-1 bg-orange-50 px-2 py-1.5 rounded-md border border-orange-100 hover:bg-orange-100 transition-colors disabled:opacity-50 ${isWidget ? '' : 'flex-col min-w-[60px]'}`}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
+                    c.current_user_has_upvoted
+                      ? "bg-orange-100 border-orange-300"
+                      : "bg-orange-50 border-orange-100 hover:bg-orange-100"
+                  } ${isWidget ? '' : 'flex-col min-w-[60px]'}`}
                 >
                   <span className={`text-sm font-bold text-orange-600 ${upvoting === c.id ? 'animate-pulse' : ''}`}>
                     {c.upvotes}
                   </span>
-                  <ThumbsUp className={`w-3.5 h-3.5 text-orange-400 ${upvoting === c.id ? 'text-orange-600' : ''}`} />
+                  <ThumbsUp className={`w-3.5 h-3.5 ${c.current_user_has_upvoted ? "text-orange-600" : "text-orange-400"} ${upvoting === c.id ? 'text-orange-600' : ''}`} />
                 </button>
               </div>
             </div>

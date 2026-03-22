@@ -33,7 +33,7 @@ export default function ProfilePage() {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
-          router.push('/login'); // Fixed path to standard login
+          router.push('/auth/login');
           return;
         }
 

@@ -57,13 +57,15 @@ export default function LostFoundForm({ onSuccess }: { onSuccess: () => void }) 
       onSuccess();
 
     } catch (err: unknown) {
-  const message = err instanceof Error ? err.message : "Unknown error";
-  if (message.includes("Daily limit reached")) {
-    alert("Limit Reached: You can only post 2 items every 24 hours. Please try again tomorrow.");
-  } else {
-    alert("Error: " + message);
-  }
-}
+      const message = err instanceof Error ? err.message : "Unknown error";
+      if (message.includes("Daily limit reached")) {
+        alert("Limit Reached: You can only post 2 items every 24 hours. Please try again tomorrow.");
+      } else {
+        alert("Error: " + message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

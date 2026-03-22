@@ -35,10 +35,7 @@ export default function MarketCreateForm() {
       const res = await fetch("/api/marketplace", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          email: userEmail,
-        }),
+        body: JSON.stringify(form),
       });
 
       const data = await res.json();
@@ -59,8 +56,9 @@ export default function MarketCreateForm() {
       
       router.refresh(); 
 
-    } catch (error: any) {
-      setErrorMsg(error.message || "Connection failed.");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Connection failed.";
+      setErrorMsg(message);
     } finally {
       setIsSubmitting(false);
     }

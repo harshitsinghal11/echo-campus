@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { User, ExternalLink } from "lucide-react";
 
@@ -24,27 +24,34 @@ export default function AnnouncementList({ refreshTrigger, isWidget = false }: A
   const [list, setList] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchAnnouncements = useCallback(async () => {
-    setLoading(true);
-
-    let query = supabase
-      .from("announcements")
-      .select(`*, directory ( name, department )`)
-      .order("created_at", { ascending: false });
-
-    if (isWidget) query = query.limit(3);
-
-    const { data, error } = await query;
-
-    if (error) console.error("Error fetching announcements:", error);
-    else setList((data as Announcement[]) || []);
-
-    setLoading(false);
-  }, [isWidget]);
-
   useEffect(() => {
-    fetchAnnouncements();
-  }, [fetchAnnouncements, refreshTrigger]);
+    let isMounted = true;
+
+    const loadAnnouncements = async () => {
+      let query = supabase
+        .from("announcements")
+        .select(`*, directory ( name, department )`)
+        .order("created_at", { ascending: false });
+
+      if (isWidget) query = query.limit(3);
+
+      const { data, error } = await query;
+      if (!isMounted) return;
+
+      if (error) {
+        console.error("Error fetching announcements:", error);
+      } else {
+        setList((data as Announcement[]) || []);
+      }
+
+      setLoading(false);
+    };
+
+    void loadAnnouncements();
+    return () => {
+      isMounted = false;
+    };
+  }, [isWidget, refreshTrigger]);
 
   if (loading) return <p className="text-center text-gray-400 py-10">Loading updates...</p>;
 

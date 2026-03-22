@@ -77,12 +77,12 @@ export default function Login() {
         return;
       }
 
-      const role = userData.role; // 'student' | 'faculty' | 'admin'
+      const role = userData.role as 'student' | 'faculty' | 'admin';
       console.log(`✅ Logged in as: ${role.toUpperCase()}`);
 
       // 3. Routing Logic
-      if (role === 'faculty') {
-        sessionStorage.setItem("userRole", "faculty");
+      if (role === 'faculty' || role === 'admin') {
+        sessionStorage.setItem("userRole", role);
         router.push("/main/faculty/dashboard/");
       }
       else if (role === 'student') {
@@ -95,12 +95,14 @@ export default function Login() {
       }
       else {
         alert("Unknown role");
+        setIsLoading(false);
       }
 
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Something went wrong.";
       console.error("Critical Login Error:", error);
       alert(message);
+      setIsLoading(false);
     }
   };
 

@@ -69,7 +69,7 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="/main/student/lostfound" className="text-gray-300 hover:text-blue-400 transition-colors duration-200 text-sm">
+                <a href="/main/student/lost-found" className="text-gray-300 hover:text-blue-400 transition-colors duration-200 text-sm">
                   Lost & Found
                 </a>
               </li>

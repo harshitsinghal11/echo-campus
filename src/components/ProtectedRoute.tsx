@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
+type AppRole = 'student' | 'faculty' | 'admin';
+
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -13,52 +15,44 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   useEffect(() => {
     const checkAccess = async () => {
       // 1. Check Login Session
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session) {
-        console.log("🔒 No session, redirecting to login");
         router.push('/auth/login');
         return;
       }
 
-      // 2. Check Role (Updated for Single Table Architecture)
+      // 2. Check Role from users table
       const userId = session.user.id;
-      
-      // Query the 'users' table for the 'role' column
       const { data: userData, error } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", userId)
+        .from('users')
+        .select('role')
+        .eq('id', userId)
         .single();
 
       if (error || !userData) {
-        console.error("Error fetching user role:", error);
-        // Safety Fallback: Force logout if role is missing/corrupted
         await supabase.auth.signOut();
         router.push('/auth/login');
         return;
       }
 
-      const userRole = userData.role; // 'faculty' or 'student'
-      const isFaculty = userRole === 'faculty';
+      const userRole = userData.role as AppRole;
+      const isFacultyLike = userRole === 'faculty' || userRole === 'admin';
 
-      // 3. ENFORCE RULES based on the current Path
-      
-      // RULE A: Student trying to enter Faculty/Admin Area?
-      if (!isFaculty && (pathname.startsWith('/main/admin') || pathname.startsWith('/main/faculty'))) {
-        console.log("⛔ Student blocked from Faculty Page");
+      // RULE A: Student trying to enter Faculty area
+      if (!isFacultyLike && pathname.startsWith('/main/faculty')) {
         router.replace('/main/student/dashboard');
         return;
       }
 
-      // RULE B: Faculty trying to enter Student Area?
-      if (isFaculty && pathname.startsWith('/main/student')) {
-        console.log("⛔ Faculty blocked from Student Page");
-        router.replace('/main/faculty/dashboard'); // Note: Changed to /faculty/dashboard to match your structure
+      // RULE B: Faculty/Admin trying to enter Student area
+      if (isFacultyLike && pathname.startsWith('/main/student')) {
+        router.replace('/main/faculty/dashboard');
         return;
       }
 
-      // 4. Access Granted
       setIsAuthorized(true);
       setIsLoading(false);
     };

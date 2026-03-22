@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+type UpvoteRequestBody = {
+  complaintId?: string;
+};
+
 export async function POST(req: Request) {
   try {
     const cookieStore = await cookies();
@@ -26,7 +30,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { complaintId } = await req.json();
+    const { complaintId } = (await req.json()) as UpvoteRequestBody;
     if (!complaintId) {
       return NextResponse.json({ error: "Missing Complaint ID" }, { status: 400 });
     }
@@ -55,8 +59,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: deleteError.message }, { status: 500 });
       }
 
-      // Return added: false (Frontend should decrement count)
-      return NextResponse.json({ message: "Upvote removed", added: false }, { status: 200 });
+      return NextResponse.json(
+        {
+          message: "Upvote removed",
+          added: false,
+          current_user_has_upvoted: false,
+        },
+        { status: 200 }
+      );
 
     } else {
       // --- B. ADD VOTE (Toggle On) ---
@@ -74,13 +84,26 @@ export async function POST(req: Request) {
         }
         // Handle Race Condition (Double click)
         if (insertError.code === '23505') {
-          return NextResponse.json({ message: "Already processed" }, { status: 200 });
+          return NextResponse.json(
+            {
+              message: "Already upvoted",
+              added: true,
+              current_user_has_upvoted: true,
+            },
+            { status: 200 }
+          );
         }
         return NextResponse.json({ error: insertError.message }, { status: 500 });
       }
 
-      // Return added: true (Frontend should increment count)
-      return NextResponse.json({ message: "Upvote added", added: true }, { status: 201 });
+      return NextResponse.json(
+        {
+          message: "Upvote added",
+          added: true,
+          current_user_has_upvoted: true,
+        },
+        { status: 201 }
+      );
     }
 
   } catch (err: unknown) {

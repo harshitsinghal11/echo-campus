@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+type AppRole = "student" | "faculty" | "admin";
+
 export async function middleware(request: NextRequest) {
   // 1. Setup the Response
   let response = NextResponse.next({
@@ -18,7 +20,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           response = NextResponse.next({
@@ -57,20 +59,26 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    const userRole = userData?.role; // 'student' | 'faculty' | 'admin'
-    const isFaculty = userRole === 'faculty';
+    const userRole = userData?.role as AppRole | undefined;
+
+    if (!userRole) {
+      url.pathname = "/auth/login";
+      return NextResponse.redirect(url);
+    }
+
+    const isFacultyLike = userRole === "faculty" || userRole === "admin";
 
     // --- SECURITY LOGIC ---
 
     // A. STUDENT trying to access FACULTY pages -> Kick to Student Dashboard
-    if (!isFaculty && path.startsWith("/main/faculty")) {      
+    if (!isFacultyLike && path.startsWith("/main/faculty")) {
       url.pathname = "/main/student/dashboard";
       return NextResponse.redirect(url);
     }
 
-    // B. FACULTY trying to access STUDENT pages -> Kick to Announcements
-    if (isFaculty && path.startsWith("/main/student")) {
-      url.pathname = "/main/faculty/dashboard"; // Changed to dashboard for better UX
+    // B. FACULTY/ADMIN trying to access STUDENT pages -> Kick to Faculty dashboard
+    if (isFacultyLike && path.startsWith("/main/student")) {
+      url.pathname = "/main/faculty/dashboard";
       return NextResponse.redirect(url);
     }
   }

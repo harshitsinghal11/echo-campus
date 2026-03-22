@@ -33,7 +33,7 @@ export async function GET() {
 
   // 2. Build Query
   // We fetch global count, AND specific upvotes by this user to check "has_upvoted"
-  let query = supabase
+  const query = supabase
     .from("complaint_box")
     .select(`
       id, 
@@ -53,7 +53,7 @@ export async function GET() {
   // Limitation: Supabase complex filters in deep selects can be tricky.
   // Efficient workaround: Fetch user's upvotes ID list in parallel if logged in.
   
-  let myUpvotedIds = new Set<string>();
+  const myUpvotedIds = new Set<string>();
   if (currentUserId) {
     const { data: myVotes } = await supabase
         .from("complaint_upvotes")
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = (await req.json()) as { complaint?: unknown; isAnonymous?: unknown };
     const { complaint, isAnonymous } = body; 
 
     if (!complaint || typeof complaint !== 'string') {
@@ -137,8 +137,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
 
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

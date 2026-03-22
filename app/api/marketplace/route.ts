@@ -2,6 +2,27 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+type MarketplaceListingRow = {
+  id: string;
+  owner_id: string;
+  owner_name: string | null;
+  owner_email: string | null;
+  product_title: string;
+  description: string;
+  price: number;
+  contact_info: string;
+  is_sold: boolean;
+  created_at: string;
+};
+
+type MarketplaceInsertPayload = {
+  product_title?: string;
+  description?: string;
+  price?: number | string;
+  owner_name?: string;
+  contact_info?: string;
+};
+
 async function createClient() {
   const cookieStore = await cookies();
   return createServerClient(
@@ -24,22 +45,17 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("marketplace")
-    .select(`
-      *,
-      users:owner_id ( 
-        email 
-      )
-    `) // Do NOT put owner_name inside the parenthesis; it belongs to marketplace (*)
+    .select("*")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Map the data so the frontend gets a clean object
-  const listings = (data as any[]).map((item) => ({
+  const listings = ((data ?? []) as MarketplaceListingRow[]).map((item) => ({
     ...item,
-    owner_email: item.users?.email,
-    owner_name: item.owner_name || "Unknown Seller", 
-    contact_info: item.contact_info
+    owner_email: item.owner_email || "",
+    owner_name: item.owner_name || "Unknown Seller",
+    contact_info: item.contact_info || "",
   }));
 
   return NextResponse.json({ listings });
@@ -54,26 +70,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    
-    // 1. ADDED owner_name and contact_info here
-    const { product_title, description, price, owner_name, contact_info, email} = body;
+    const body = (await req.json()) as MarketplaceInsertPayload;
+    const productTitle = body.product_title?.trim();
+    const description = body.description?.trim();
+    const ownerName = body.owner_name?.trim();
+    const contactInfo = body.contact_info?.trim();
+    const parsedPrice = Number(body.price);
+    const ownerEmail = user.email?.trim();
 
-    // 2. Update validation to check for the new fields
-    if (!product_title || !description || !price || !owner_name || !contact_info) {
+    // Validate all required fields before insert
+    if (!productTitle || !description || !ownerName || !contactInfo) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // 3. Insert into Supabase (Make sure these column names match your Supabase Table!)
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      return NextResponse.json({ error: "Invalid price" }, { status: 400 });
+    }
+
+    if (!ownerEmail) {
+      return NextResponse.json({ error: "User email unavailable" }, { status: 400 });
+    }
+
+    if (!/^\d{10}$/.test(contactInfo)) {
+      return NextResponse.json({ error: "Contact info must be 10 digits" }, { status: 400 });
+    }
+
+    if (description.length < 3) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Never trust owner_email from client input; derive from authenticated user
     const { error: insertError } = await supabase.from("marketplace").insert({
       owner_id: user.id,
-      product_title,
+      product_title: productTitle,
       description,
-      price: Number(price),
-      owner_name,    // Add this
-      contact_info, 
-      email, // Add this
-      is_sold: false
+      price: parsedPrice,
+      owner_name: ownerName,
+      contact_info: contactInfo,
+      owner_email: ownerEmail,
+      is_sold: false,
     });
 
     if (insertError) {
