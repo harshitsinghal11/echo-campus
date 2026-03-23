@@ -7,13 +7,13 @@ announcements, complaints, marketplace trading, lost-and-found, faculty director
 anonymous student chat.
 
 2. Current Product Scope
-- Role-based experience for students and faculty
+- Role-based experience for students, faculty, and admin users
 - Supabase-backed APIs for core modules
 - Firebase anonymous chat channel for real-time messaging
-- Dashboard-first navigation for both roles
+- Dashboard-first navigation for role-specific workflows
 
 3. Feature Summary
-- Announcements: faculty posting, student/faculty read access
+- Announcements: faculty posting, authenticated read access
 - Complaint System: student complaint posting with upvote toggle support
 - Marketplace: student-driven listing flow and owner-only "mark sold"
 - Lost and Found: report item + contact details + optional image
@@ -31,16 +31,39 @@ anonymous student chat.
 - Protected route prefixes:
   - `/main/student/*`
   - `/main/faculty/*`
-- Write restrictions are expected to be enforced in Supabase RLS policies.
+- `admin` is handled as faculty-like access in app guards.
+- Write restrictions are enforced in Supabase RLS policies.
 
 6. Usage Limits (Database Trigger Layer)
 - Complaints: 1 complaint per user per 7 days
 - Marketplace: 1 listing per user per 3 days
 - Lost and Found: up to 2 posts per user per 24 hours
 
-7. Operational Notes
-- API and UI contracts should stay synchronized for fields like:
+7. Completed Stabilization TODOs
+- TODO 1: Lost-and-found form loading state reset was fixed in submit flow.
+- TODO 2: Complaint API and announcement list were stabilized with safer typing and async state handling.
+- TODO 3: Role checks were unified across login, middleware, and protected route guards.
+
+8. Operational Notes
+- Keep API and UI contracts synchronized for fields:
   - `marketplace.owner_email`
   - `complaint_upvotes.user_id`
   - `complaint_box.is_anonymous`
-- Keep docs in this `assets/` folder updated whenever schema/policy changes are deployed.
+- If running in Windows paths containing `&`, use npm scripts from `package.json` for CLI tasks.
+- Use canonical database scripts for setup/migrations:
+  - `assets/sql/01_tables_relations.sql`
+  - `assets/sql/02_functions_triggers_policies.sql`
+- Keep docs in this `assets/` folder updated whenever schema/policy/function changes are deployed.
+
+9. Documentation Ownership Flow (No Overwrite Conflicts)
+- Executable truth:
+  - `assets/sql/01_tables_relations.sql` (tables, constraints, indexes)
+  - `assets/sql/02_functions_triggers_policies.sql` (RLS, policies, functions, triggers)
+- Human-readable summaries only (non-executable):
+  - `assets/DatabaseSchema_Echocampus.txt`
+  - `assets/Policy_Echocampus.txt`
+  - `assets/Trigger&Functions_EchoCampus.txt`
+- Project-level entry point:
+  - `README.md` (setup, apply order, docs hierarchy)
+- Rule:
+  - Update canonical SQL first, then refresh summaries.

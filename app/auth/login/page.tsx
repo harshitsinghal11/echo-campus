@@ -78,7 +78,7 @@ export default function Login() {
       }
 
       const role = userData.role as 'student' | 'faculty' | 'admin';
-      console.log(`✅ Logged in as: ${role.toUpperCase()}`);
+      console.log(`[auth] Logged in as: ${role.toUpperCase()}`);
 
       // 3. Routing Logic
       if (role === 'faculty' || role === 'admin') {

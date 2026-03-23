@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { usePathname } from "next/navigation"; 
-import { Menu, X, Home, User, MessageSquare, Mic, BookUser, ShieldAlert, Store, BellRing, LogOut } from "lucide-react";
+import { Menu, X, Home, User, BookUser, ShieldAlert, BellRing, LogOut } from "lucide-react";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

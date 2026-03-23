@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   collection,
   addDoc,
@@ -10,8 +10,7 @@ import {
   serverTimestamp,
   DocumentData,
   QuerySnapshot,
-  Unsubscribe,
-  Timestamp
+  Unsubscribe
 } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
@@ -32,7 +31,7 @@ export default function AnonChat() {
   const sessionCode = useSessionCode();
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
-  const messagesRef = collection(db, 'chat_messages');
+  const messagesRef = useMemo(() => collection(db, 'chat_messages'), []);
   const isOwnMessage = (code: string) => code === sessionCode;
 
   // 1) Ensure the client has Firebase anonymous auth (so rules apply)
@@ -71,7 +70,7 @@ export default function AnonChat() {
     });
 
     return () => unsub();
-  }, []); // run once
+  }, [messagesRef]); // run once per collection ref
 
   useEffect(() => {
   if (chatContainerRef.current) {

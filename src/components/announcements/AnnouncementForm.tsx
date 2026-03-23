@@ -17,21 +17,53 @@ export default function AnnouncementForm({ onSuccess }: { onSuccess: () => void 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Get Faculty ID
+      // Get Faculty mapping (user_id -> directory.id)
       const { data: facultyRow, error: facultyError } = await supabase
         .from("faculty_users")
         .select("faculty_id")
         .eq("user_id", user.id)
         .single();
 
-      if (facultyError || !facultyRow) throw new Error("Faculty profile not found.");
+      let facultyId = facultyRow?.faculty_id ?? null;
+
+      // Self-heal mapping if missing: match by authenticated email -> directory.email
+      if (!facultyId && (facultyError?.code === "PGRST116" || !facultyRow)) {
+        if (!user.email) throw new Error("User email not available for faculty mapping.");
+
+        const { data: directoryRow, error: directoryError } = await supabase
+          .from("directory")
+          .select("id")
+          .eq("email", user.email)
+          .single();
+
+        if (directoryError || !directoryRow) {
+          throw new Error("Faculty directory profile not found for this account.");
+        }
+
+        const { data: insertedMapping, error: mappingError } = await supabase
+          .from("faculty_users")
+          .upsert(
+            { user_id: user.id, faculty_id: directoryRow.id },
+            { onConflict: "user_id" }
+          )
+          .select("faculty_id")
+          .single();
+
+        if (mappingError || !insertedMapping) {
+          throw new Error("Faculty mapping setup failed. Please contact admin.");
+        }
+
+        facultyId = insertedMapping.faculty_id;
+      }
+
+      if (!facultyId) throw new Error("Faculty profile not found.");
 
       // Insert Announcement
       const { error: postError } = await supabase.from("announcements").insert({
         title,
         content,
         link: link || null, // If empty string, save as NULL
-        author_id: facultyRow.faculty_id,
+        author_id: facultyId,
       });
 
       if (postError) throw postError;
@@ -45,6 +77,8 @@ export default function AnnouncementForm({ onSuccess }: { onSuccess: () => void 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to post.";
       alert(message);
+    } finally {
+      setLoading(false);
     }
   }
 

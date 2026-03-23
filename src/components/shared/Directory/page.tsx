@@ -62,15 +62,6 @@ export default function DirectoryPage() {
   // Get unique departments
   const departments = ['All', ...Array.from(new Set(faculty.map(f => f.department)))]
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

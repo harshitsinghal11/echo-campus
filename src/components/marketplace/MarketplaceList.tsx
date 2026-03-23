@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { MarketplaceItem } from "@/types/marketplace"; 
 
 // 1. Update the Props Interface
@@ -13,7 +13,7 @@ export default function MarketList({ currentUserEmail, isWidget = false }: Marke
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const res = await fetch("/api/marketplace");
       const data = await res.json();
@@ -31,7 +31,7 @@ export default function MarketList({ currentUserEmail, isWidget = false }: Marke
     } finally {
       setLoading(false);
     }
-  }
+  }, [isWidget]);
 
   async function markSold(id: string) {
     if (!confirm("Are you sure you want to mark this item as sold?")) return;
@@ -48,14 +48,14 @@ export default function MarketList({ currentUserEmail, isWidget = false }: Marke
       } else {
         alert("Failed to update status.");
       }
-    } catch (err) {
+    } catch {
       alert("Network error.");
     }
   }
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   if (loading) return <p className="text-gray-500 text-center animate-pulse">Loading listings...</p>;
 

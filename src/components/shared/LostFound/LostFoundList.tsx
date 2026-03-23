@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { MapPin, Phone, Calendar, Search, Camera, Trash2, ArrowRight } from "lucide-react";
+import Image from "next/image";
 
 interface LostFoundListProps {
   refreshTrigger?: number;
@@ -107,7 +108,14 @@ const [items, setItems] = useState<LostFoundItem[]>([]);
               ${!showSearch ? 'w-16 h-16' : 'w-full md:w-48 h-48'}
             `}>
               {item.image_url ? (
-                <img src={item.image_url} alt="Item" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <Image
+                  src={item.image_url}
+                  alt="Item"
+                  fill
+                  unoptimized
+                  sizes={!showSearch ? "64px" : "(max-width: 768px) 100vw, 192px"}
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
               ) : (
                 <Camera className={`text-gray-300 ${!showSearch ? 'w-6 h-6' : 'w-10 h-10'}`} />
               )}

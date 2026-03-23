@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Loader2, X, UploadCloud } from "lucide-react";
+import Image from "next/image";
 
 export default function LostFoundForm({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -76,7 +77,14 @@ export default function LostFoundForm({ onSuccess }: { onSuccess: () => void }) 
         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Item Photo</label>
         {form.image_url ? (
           <div className="relative w-full h-48 rounded-xl overflow-hidden border border-gray-200 group">
-            <img src={form.image_url} alt="Preview" className="w-full h-full object-cover" />
+            <Image
+              src={form.image_url}
+              alt="Preview"
+              fill
+              unoptimized
+              sizes="(max-width: 768px) 100vw, 640px"
+              className="object-cover"
+            />
             <button
               type="button"
               onClick={() => setForm({ ...form, image_url: "" })}
